@@ -1,1 +1,1 @@
-https://hub.docker.com/r/ardian0x1/diabetes-monitoring-app
+https://github.com/ardianx0/Workflow-CI
