@@ -18,6 +18,8 @@ def main():
     dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
     mlflow.set_experiment("Diabetes_Hyperparameter_Tuning")
     
+    mlflow.autolog(log_model_signatures=True, log_input_examples=True, disable=False)
+    
     data_path = os.path.join("preprocessing", "diabetes_preprocessing", "diabetes_clean.csv")
     df = pd.read_csv(data_path)
     X = df.drop(columns=['Outcome'])
@@ -49,6 +51,7 @@ def main():
             
             print(f"Hasil -> Accuracy: {acc:.4f}, F1-Score: {f1:.4f}")
             
+            # Logging parameter dan metrik tambahan secara manual
             mlflow.log_param("model_type", "RandomForestClassifier_Tuned")
             mlflow.log_param("n_estimators", params['n_estimators'])
             mlflow.log_param("max_depth", params['max_depth'])
@@ -57,30 +60,31 @@ def main():
             mlflow.log_metric("recall", rec)
             mlflow.log_metric("f1_score", f1)
             
-            # Artefak Grafik: Confusion Matrix
+            # Artefak Grafik 1: Confusion Matrix
             cm = confusion_matrix(y_test, y_pred)
-            plt.figure(figsize=(6, 5))
-            sns.heatmap(cm, annot=True, fmt='d', cmap='Oranges', xticklabels=['Sehat', 'Diabetes'], yticklabels=['Sehat', 'Diabetes'])
-            plt.title(f'Confusion Matrix - Tuning {i+1}')
+            fig, ax = plt.subplots(figsize=(6, 5))  # Diperbaiki menggunakan subplots agar state bersih
+            sns.heatmap(cm, annot=True, fmt='d', cmap='Oranges', 
+                        xticklabels=['Sehat', 'Diabetes'], yticklabels=['Sehat', 'Diabetes'], ax=ax)
+            ax.set_title(f'Confusion Matrix - Tuning {i+1}')
             cm_path = f"confusion_matrix_tuning_{i+1}.png"
-            plt.savefig(cm_path)
-            plt.close()
+            fig.savefig(cm_path)
+            plt.close(fig)
             mlflow.log_artifact(cm_path)
             os.remove(cm_path)
             
-            # Artefak Tambahan 1: Feature Importance Plot (SUDAH DIPERBAIKI)
+            # Artefak Grafik 2: Feature Importance Plot
             importances = model.feature_importances_
             indices = np.argsort(importances)[::-1]
-            plt.figure(figsize=(8, 4))
-            sns.barplot(x=importances[indices], y=X.columns[indices], palette="viridis")
-            plt.title(f'Fitur Paling Berpengaruh - Tuning {i+1}')
+            fig2, ax2 = plt.subplots(figsize=(8, 4))  # Diperbaiki menggunakan instance gambar baru
+            sns.barplot(x=importances[indices], y=X.columns[indices], palette="viridis", ax=ax2)
+            ax2.set_title(f'Fitur Paling Berpengaruh - Tuning {i+1}')
             feat_path = f"feature_importance_tuning_{i+1}.png"
-            plt.savefig(feat_path)
-            plt.close()
+            fig2.savefig(feat_path)
+            plt.close(fig2)
             mlflow.log_artifact(feat_path)
             os.remove(feat_path)
             
-            # Artefak Tambahan 2: Ringkasan Laporan .txt
+            # Artefak Tambahan 3: Ringkasan Laporan .txt
             summary_path = f"tuning_report_{i+1}.txt"
             with open(summary_path, "w") as f:
                 f.write(f"=== LAPORAN TUNING JALUR {i+1} ===\n")
@@ -90,6 +94,7 @@ def main():
             mlflow.log_artifact(summary_path)
             os.remove(summary_path)
             
+            # Registrasi model final ke dalam komponen artifacts MLflow
             mlflow.sklearn.log_model(model, "model")
             
     print("\nSemua proses Hyperparameter Tuning sukses dicatat di DagsHub!")
