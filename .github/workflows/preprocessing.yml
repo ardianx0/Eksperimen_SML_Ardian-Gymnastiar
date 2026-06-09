@@ -1,0 +1,25 @@
+name: Preprocessing Workflow
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        pip install pandas numpy scikit-learn
+    - name: Run preprocessing
+      run: python preprocessing/automate_Ardian-Gymnastiar.py
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: preprocessed-data
+        path: preprocessing/namadataset_preprocessing/diabetes_clean.csv
